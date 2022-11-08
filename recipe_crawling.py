@@ -31,22 +31,3 @@ print("============ 레시피 link 리스트 ============")
 for i in recipe_titles:
     href = i.attrs['href']
     print('https://www.10000recipe.com' + href)
-
-
-
-
-# for i in recipe_titles:
-#     try:
-#         href = i.attrs['href']
-#         tot_url = 'https://www.10000recipe.com'+href
-#         print('https://www.10000recipe.com'+href)
-#
-#         conn = ora.connect(user="c##homework", password="homework", url="localhost:1521/xe")
-#         cursor = conn.cursor()
-#         cursor.execute('insert into url (url_link) values(:1)',tot_url)
-#         cursor.close()
-#         conn.commit()
-#         conn.close()
-#     except Exception as msg:
-#         print(msg)
-#         pass
