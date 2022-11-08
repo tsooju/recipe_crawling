@@ -115,7 +115,7 @@ def main_function():
 
                 print("==========================================================================")
 
-                conn = ora.connect(user="admin", password="Amjilt39260193", dsn="gtsoojdb_high")
+                conn = ora.connect(user="admin", password=".....", dsn="....db_high")
                 cursor = conn.cursor()
                 cursor.execute('insert into recipe (recipe_num, '
                                                     'recipe_title, '
