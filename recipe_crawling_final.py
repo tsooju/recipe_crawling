@@ -2,20 +2,33 @@ import requests
 from bs4 import BeautifulSoup
 import cx_Oracle as ora
 from urllib.request import urlopen
-
+from datetime import datetime
 
 def get_recipe_type(url):
 
     global contents
     headers = {"User-Agent": "Chrome/63.0.3239.132 (Windows NT 6.3; Win64; x64)"}
-    # link = "https://www.10000recipe.com/recipe/6842114"
+    # url = "https://www.10000recipe.com/recipe/6878340"
 
     recipe_type_list = []
     request = requests.get(url, headers=headers)
     soup = BeautifulSoup(request.text, "html.parser")
     divs = soup.find_all("div", class_='col-xs-9')
+
+
+
     content_final = []
     for links in divs:
+        date_list = links.select("p.view_notice_date > b")[0]
+        # date = (str(((date_list).text).replace("등록일 : ", "")).replace("-", "/"))[2:]
+        date = str((date_list).text).replace("등록일 : ", "")
+        date_l = (datetime.strptime(date, '%Y-%m-%d')).date()
+
+        # print(date_l)
+
+        # print(date)
+        # li.select("div.common_sp_thumb > a > img")[0]["src"]
+
         link = links.find("img", id="main_thumbs")["src"]
 
         for i in range(1,30):
@@ -26,7 +39,8 @@ def get_recipe_type(url):
 
         recipe_types = {
             "recipe_link": link,
-            "content": content_final
+            "content": content_final,
+            "date_list": date_l
         }
         recipe_type_list.append(recipe_types)
         # print("recipe_types : ", recipe_type_list)
@@ -42,6 +56,7 @@ def get_recipe_link(url):
     request = requests.get(url, headers=headers)
     request.raise_for_status()
     soup = BeautifulSoup(request.text, "html.parser")
+
     list = soup.find_all("li", class_='common_sp_list_li') # 제목 링크
 
     list_file = []
@@ -56,29 +71,29 @@ def get_recipe_link(url):
         # print(recipe_image_link)
 
         recipe_link = li.a.attrs.get("href")
-
+        print("https://www.10000recipe.com" + recipe_link)
         list_file.append({
             "recipe_title": recipe_title,
             "recipe_link": "https://www.10000recipe.com" + recipe_link,
             "readcount": readcount,
             "recipe_image_link": recipe_image_link
         })
-
     # print(list_file)
     return list_file
 
 
 def main_function():
-    global content, origin_img, rename_img
+    global content, origin_img, rename_img, date_list
     ora.init_oracle_client(lib_dir="./instantclient_21_6")
-    pagenum = 2
+    pagenum = 25
     result = []
     link_detail = []
 
     for i in range (1, pagenum):
-        print("PAGE NUMBER: ", i)
+        # print("PAGE NUMBER: ", i)
 
-        link_base = "https://www.10000recipe.com/recipe/list.html?order=reco&page=" + str(pagenum)
+        link_base = "https://www.10000recipe.com/recipe/list.html?order=reco&page=" + str(i)
+        print(link_base)
         result.append(get_recipe_link(link_base))
 
     for i in result:
@@ -96,9 +111,10 @@ def main_function():
                 rename_img = (str(j["recipe_image_link"]).replace("/", "_")).replace(":","__")
 
                 rename_down = str(j["recipe_image_link"])
-
+                # C:/framework_workspace/first/first/src/main/webapp/resources/recipe_upfiles
                 with urlopen(rename_down) as f:
-                    with open("./img_file/" + (str(rename_down).replace("/", "_")).replace(":","__"), "wb") as h:
+                    with open("C:/framework_workspace/first/first/src/main/webapp/resources/recipe_upfiles/" + (str(rename_down).replace("/", "_")).replace(":", "__"), "wb") as h:
+                    # with open("./img_file/" + (str(rename_down).replace("/", "_")).replace(":","__"), "wb") as h:
                         img = f.read()
                         h.write(img)
 
@@ -110,12 +126,13 @@ def main_function():
                     for j in i:
                         origin_img = j["recipe_link"]
                         content = str(j["content"])
-                        print(j["recipe_link"])
-                        print(j["content"])
+                        date_list = j["date_list"]
+                        # print(j["recipe_link"])
+                        # print(j["content"])
 
                 print("==========================================================================")
 
-                conn = ora.connect(user="admin", password=".....", dsn="....db_high")
+                conn = ora.connect(user="admin", password="....", dsn="....db_high")
                 cursor = conn.cursor()
                 cursor.execute('insert into recipe (recipe_num, '
                                                     'recipe_title, '
@@ -124,7 +141,7 @@ def main_function():
                                                     'recipe_date, '
                                                     'recipe_original_imgname, '
                                                     'recipe_rename_imgname, '
-                                                    'recipe_readcount) values((select max(recipe_num) + 1 from recipe), :2,:3,:4, sysdate, :6, :7, :8)', (title, "admin", content, "(null)", rename_img, readcount))
+                                                    'recipe_readcount) values((select max(recipe_num) + 1 from recipe), :2,:3,:4, :5, :6, :7, :8)', (title, "admin", content,  date_list, "(null)", rename_img, readcount))
 
                 cursor.close()
                 conn.commit()
